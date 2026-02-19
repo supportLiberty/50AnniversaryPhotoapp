@@ -1,7 +1,8 @@
 // =====================================================
 // 50th Anniversary Photo Gallery
-// Features: Folder tabs, Size toggle, Jump slider,
-//           Filmstrip, Favorites, Albums/Tagging
+// Features: Collection tabs, Size toggle, Jump slider,
+//           Filmstrip, Favorites, Albums/Tagging,
+//           Admin visibility, Data publish
 // =====================================================
 
 (function () {
@@ -21,8 +22,9 @@
   let favorites = new Set();
 
   // Albums state
-  let albums = [];           // [{name, color}, ...]
+  let albums = [];           // [{name, color, adminOnly}, ...]
   let photoAlbums = {};      // {photoId: [albumName, ...]}
+  let albumVisibility = {};  // {albumName: true/false} - admin controls guest visibility
 
   // Admin / Delete state
   let adminMode = false;
@@ -47,12 +49,11 @@
   const lightboxFav = $('#lightbox-fav');
   const lightboxAlbumChips = $('#lightbox-album-chips');
   const lightboxAddAlbum = $('#lightbox-add-album');
-  const filmstripTrack = $('#filmstrip-track');
-  const albumFilterContainer = $('#album-filter-tabs');
-  const albumDivider = $('#album-divider');
+  const collectionTabsContainer = $('#collection-tabs');
   const btnAdmin = $('#btn-admin');
   const lightboxDelete = $('#lightbox-delete');
   const othersTab = $('#others-tab');
+  const btnPublish = $('#btn-publish');
   const slideshow = $('#slideshow');
   const slideshowImg = $('#slideshow-img');
   const slideshowImgNext = $('#slideshow-img-next');
@@ -61,11 +62,12 @@
   const slideshowProgressBar = $('#slideshow-progress-bar');
   const playIcon = $('#play-icon');
   const pauseIcon = $('#pause-icon');
+  const filmstripTrack = $('#filmstrip-track');
 
   // --- Image URLs ---
-  function getThumbnailUrl(p) { return `https://drive.google.com/thumbnail?id=${p.id}&sz=w${CONFIG.THUMBNAIL_SIZE}`; }
-  function getFullUrl(p) { return `https://drive.google.com/thumbnail?id=${p.id}&sz=w${CONFIG.LIGHTBOX_SIZE}`; }
-  function getSmallThumbUrl(p) { return `https://drive.google.com/thumbnail?id=${p.id}&sz=w80`; }
+  function getThumbnailUrl(p) { return `https://lh3.googleusercontent.com/d/${p.id}=w${CONFIG.THUMBNAIL_SIZE}`; }
+  function getFullUrl(p) { return `https://lh3.googleusercontent.com/d/${p.id}=w${CONFIG.LIGHTBOX_SIZE}`; }
+  function getSmallThumbUrl(p) { return `https://lh3.googleusercontent.com/d/${p.id}=w80`; }
 
   // =========================================================
   // STORAGE
@@ -76,29 +78,93 @@
   function saveFavorites() {
     try { localStorage.setItem('anniversary_favorites', JSON.stringify([...favorites])); } catch(e) {}
   }
+
   function loadAlbums() {
     try {
-      const s = localStorage.getItem('anniversary_albums');
-      albums = s ? JSON.parse(s) : [...CONFIG.DEFAULT_ALBUMS];
-      const pa = localStorage.getItem('anniversary_photo_albums');
-      photoAlbums = pa ? JSON.parse(pa) : {};
+      // Start with defaults
+      albums = [...CONFIG.DEFAULT_ALBUMS];
+
+      // Load album list from localStorage (may have custom albums added)
+      const savedAlbums = localStorage.getItem('anniversary_albums');
+      if (savedAlbums) {
+        const parsed = JSON.parse(savedAlbums);
+        // Merge: keep defaults, add any custom albums
+        parsed.forEach(a => {
+          if (!albums.find(x => x.name === a.name)) {
+            albums.push(a);
+          }
+        });
+      }
+
+      // Load photo→album assignments
+      // Priority: SAVED_DATA (shared) → localStorage (personal overrides)
+      if (typeof SAVED_DATA !== 'undefined' && SAVED_DATA.photoAlbums) {
+        photoAlbums = JSON.parse(JSON.stringify(SAVED_DATA.photoAlbums)); // deep copy
+        // Layer personal localStorage on top
+        const localPA = localStorage.getItem('anniversary_photo_albums');
+        if (localPA) {
+          const localParsed = JSON.parse(localPA);
+          // Merge: localStorage overrides shared data per photo
+          for (const pid in localParsed) {
+            photoAlbums[pid] = localParsed[pid];
+          }
+        }
+      } else {
+        // No shared data, use localStorage only
+        const pa = localStorage.getItem('anniversary_photo_albums');
+        photoAlbums = pa ? JSON.parse(pa) : {};
+      }
+
+      // Load album visibility settings
+      if (typeof SAVED_DATA !== 'undefined' && SAVED_DATA.albumVisibility) {
+        albumVisibility = JSON.parse(JSON.stringify(SAVED_DATA.albumVisibility));
+      }
+      // Layer localStorage visibility on top
+      const localVis = localStorage.getItem('anniversary_album_visibility');
+      if (localVis) {
+        const parsed = JSON.parse(localVis);
+        Object.assign(albumVisibility, parsed);
+      }
+      // Set defaults: adminOnly albums default to hidden
+      albums.forEach(a => {
+        if (!(a.name in albumVisibility)) {
+          albumVisibility[a.name] = !a.adminOnly;
+        }
+      });
+
     } catch(e) {
       albums = [...CONFIG.DEFAULT_ALBUMS];
       photoAlbums = {};
+      albumVisibility = {};
+      albums.forEach(a => { albumVisibility[a.name] = !a.adminOnly; });
     }
   }
+
   function saveAlbums() {
     try { localStorage.setItem('anniversary_albums', JSON.stringify(albums)); } catch(e) {}
   }
   function savePhotoAlbums() {
     try { localStorage.setItem('anniversary_photo_albums', JSON.stringify(photoAlbums)); } catch(e) {}
   }
+  function saveAlbumVisibility() {
+    try { localStorage.setItem('anniversary_album_visibility', JSON.stringify(albumVisibility)); } catch(e) {}
+  }
 
   // =========================================================
   // HIDDEN PHOTOS (delete = hide)
   // =========================================================
   function loadHidden() {
-    try { const s = localStorage.getItem('anniversary_hidden'); if (s) hiddenPhotos = new Set(JSON.parse(s)); } catch(e) {}
+    // Load from SAVED_DATA first, then layer localStorage
+    if (typeof SAVED_DATA !== 'undefined' && SAVED_DATA.hiddenPhotos) {
+      hiddenPhotos = new Set(SAVED_DATA.hiddenPhotos);
+    }
+    try {
+      const s = localStorage.getItem('anniversary_hidden');
+      if (s) {
+        const arr = JSON.parse(s);
+        arr.forEach(id => hiddenPhotos.add(id));
+      }
+    } catch(e) {}
   }
   function saveHidden() {
     try { localStorage.setItem('anniversary_hidden', JSON.stringify([...hiddenPhotos])); } catch(e) {}
@@ -127,7 +193,7 @@
     overlay.innerHTML = `
       <div class="pin-modal">
         <h3>Enter Admin PIN</h3>
-        <p>Move photos to Others folder</p>
+        <p>Manage collections & publish data</p>
         <input type="password" class="pin-input" maxlength="10" autofocus inputmode="numeric">
         <div class="pin-modal-actions">
           <button class="pin-modal-btn cancel">Cancel</button>
@@ -147,7 +213,10 @@
         document.body.classList.add('admin-mode');
         btnAdmin.classList.add('active');
         othersTab.style.display = '';
+        // Show admin-only elements
+        $$('.admin-only-el').forEach(el => el.style.display = '');
         updateOthersCount();
+        renderCollectionTabs();
         overlay.remove();
       } else {
         input.classList.add('error');
@@ -171,7 +240,14 @@
     document.body.classList.remove('admin-mode');
     btnAdmin.classList.remove('active');
     othersTab.style.display = 'none';
+    $$('.admin-only-el').forEach(el => el.style.display = 'none');
+    renderCollectionTabs();
     if (activeFilter === 'others') applyFilter('all');
+    // If viewing a hidden collection, switch to all
+    if (activeFilter.startsWith('album:')) {
+      const albumName = activeFilter.slice(6);
+      if (!albumVisibility[albumName]) applyFilter('all');
+    }
   }
 
   btnAdmin.addEventListener('click', () => {
@@ -219,7 +295,7 @@
     else photoAlbums[photoId].push(albumName);
     if (photoAlbums[photoId].length === 0) delete photoAlbums[photoId];
     savePhotoAlbums();
-    updateAlbumFilterCounts();
+    renderCollectionTabs();
 
     // Update card dots
     updateCardAlbumDots(photoId);
@@ -235,8 +311,12 @@
 
   function getAlbumCount(albumName) {
     let count = 0;
+    const visible = allPhotos.filter(p => !hiddenPhotos.has(p.id));
     for (const pid in photoAlbums) {
-      if (photoAlbums[pid].includes(albumName)) count++;
+      if (photoAlbums[pid].includes(albumName)) {
+        // Only count visible photos
+        if (visible.find(p => p.id === pid)) count++;
+      }
     }
     return count;
   }
@@ -244,39 +324,73 @@
   function addNewAlbum(name, color) {
     if (albums.find(a => a.name === name)) return false;
     albums.push({ name, color });
+    albumVisibility[name] = true; // New albums visible by default
     saveAlbums();
-    renderAlbumFilterTabs();
+    saveAlbumVisibility();
+    renderCollectionTabs();
     return true;
   }
 
   // =========================================================
-  // ALBUM UI - Filter Tabs
+  // ALBUM VISIBILITY (Admin controls what guests see)
   // =========================================================
-  function renderAlbumFilterTabs() {
-    albumFilterContainer.innerHTML = '';
-    const hasAlbumPhotos = Object.keys(photoAlbums).length > 0;
-    albumDivider.style.display = hasAlbumPhotos ? '' : 'none';
+  function toggleAlbumVisibility(albumName) {
+    albumVisibility[albumName] = !albumVisibility[albumName];
+    saveAlbumVisibility();
+    renderCollectionTabs();
+  }
 
-    // Only show album tabs that have photos
+  // =========================================================
+  // COLLECTION TABS (Primary Navigation)
+  // =========================================================
+  function renderCollectionTabs() {
+    collectionTabsContainer.innerHTML = '';
+
     albums.forEach(album => {
       const count = getAlbumCount(album.name);
-      if (count === 0) return;
+      const isVisible = albumVisibility[album.name] !== false;
+      const isAdminOnly = album.adminOnly === true;
+
+      // In guest mode: only show visible collections with photos
+      if (!adminMode) {
+        if (!isVisible || count === 0) return;
+      }
+      // In admin mode: show all collections (even empty, even hidden)
 
       const btn = document.createElement('button');
-      btn.className = 'album-filter-tab' + (activeFilter === 'album:' + album.name ? ' active' : '');
+      const isActive = activeFilter === 'album:' + album.name;
+      btn.className = 'album-filter-tab' + (isActive ? ' active' : '') + (!isVisible ? ' album-hidden' : '');
       btn.dataset.filter = 'album:' + album.name;
-      if (activeFilter === 'album:' + album.name) {
+      if (isActive) {
         btn.style.background = album.color;
         btn.style.borderColor = album.color;
       }
-      btn.innerHTML = `<span class="album-dot" style="background:${album.color}"></span>${album.name} <span class="filter-count">${count}</span>`;
-      btn.addEventListener('click', () => applyFilter('album:' + album.name));
-      albumFilterContainer.appendChild(btn);
-    });
-  }
 
-  function updateAlbumFilterCounts() {
-    renderAlbumFilterTabs();
+      let html = `<span class="album-dot" style="background:${album.color}"></span>${album.name} <span class="filter-count">${count}</span>`;
+
+      // Admin: add visibility toggle
+      if (adminMode) {
+        const eyeIcon = isVisible
+          ? '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>'
+          : '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
+        html += `<span class="album-vis-toggle" data-album="${album.name}" title="${isVisible ? 'Visible to guests (click to hide)' : 'Hidden from guests (click to show)'}">${eyeIcon}</span>`;
+      }
+
+      btn.innerHTML = html;
+
+      // Click on the tab itself → filter
+      btn.addEventListener('click', (e) => {
+        // If clicked on visibility toggle, handle that instead
+        if (e.target.closest('.album-vis-toggle')) {
+          e.stopPropagation();
+          toggleAlbumVisibility(album.name);
+          return;
+        }
+        applyFilter('album:' + album.name);
+      });
+
+      collectionTabsContainer.appendChild(btn);
+    });
   }
 
   // =========================================================
@@ -403,6 +517,72 @@
   });
 
   // =========================================================
+  // PUBLISH DATA (Export for sharing)
+  // =========================================================
+  function publishData() {
+    const data = {
+      photoAlbums: photoAlbums,
+      hiddenPhotos: [...hiddenPhotos],
+      albumVisibility: albumVisibility
+    };
+    const json = JSON.stringify(data);
+    const jsContent = `// Published album data - generated ${new Date().toLocaleString()}\n// Total tagged photos: ${Object.keys(photoAlbums).length}\n// Hidden photos: ${hiddenPhotos.size}\n\nconst SAVED_DATA = ${JSON.stringify(data, null, 2)};\n`;
+
+    // Show modal with the data
+    const overlay = document.createElement('div');
+    overlay.className = 'album-modal-overlay';
+    overlay.innerHTML = `
+      <div class="publish-modal">
+        <h3>Publish Collection Data</h3>
+        <p class="publish-stats">
+          Tagged photos: <strong>${Object.keys(photoAlbums).length}</strong> &middot;
+          Hidden: <strong>${hiddenPhotos.size}</strong> &middot;
+          Collections: <strong>${albums.length}</strong>
+        </p>
+        <p class="publish-instructions">Copy the text below and paste it to Claude to update the shared gallery:</p>
+        <textarea class="publish-textarea" readonly>${jsContent}</textarea>
+        <div class="publish-actions">
+          <button class="pin-modal-btn cancel">Close</button>
+          <button class="pin-modal-btn submit" id="copy-publish-data">Copy to Clipboard</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+
+    const textarea = overlay.querySelector('.publish-textarea');
+    const copyBtn = overlay.querySelector('#copy-publish-data');
+    const cancelBtn = overlay.querySelector('.cancel');
+
+    copyBtn.addEventListener('click', () => {
+      textarea.select();
+      navigator.clipboard.writeText(jsContent).then(() => {
+        copyBtn.textContent = 'Copied!';
+        copyBtn.style.background = '#4CAF50';
+        setTimeout(() => {
+          copyBtn.textContent = 'Copy to Clipboard';
+          copyBtn.style.background = '';
+        }, 2000);
+      }).catch(() => {
+        // Fallback
+        textarea.select();
+        document.execCommand('copy');
+        copyBtn.textContent = 'Copied!';
+      });
+    });
+
+    cancelBtn.addEventListener('click', () => overlay.remove());
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+    textarea.addEventListener('click', () => textarea.select());
+  }
+
+  if (btnPublish) {
+    btnPublish.addEventListener('click', (e) => {
+      e.stopPropagation();
+      publishData();
+    });
+  }
+
+  // =========================================================
   // INIT
   // =========================================================
   function init() {
@@ -417,19 +597,13 @@
       return;
     }
 
-    // Folder counts (exclude hidden)
+    // Count visible photos
     const visiblePhotos = allPhotos.filter(p => !hiddenPhotos.has(p.id));
-    const folderCounts = {};
-    visiblePhotos.forEach(p => { folderCounts[p.folder] = (folderCounts[p.folder] || 0) + 1; });
     const countAll = document.getElementById('count-all');
     if (countAll) countAll.textContent = visiblePhotos.length;
     updateOthersCount();
-    Object.keys(folderCounts).forEach(folder => {
-      const el = document.getElementById('count-' + folder);
-      if (el) el.textContent = folderCounts[folder];
-    });
     updateFavCount();
-    renderAlbumFilterTabs();
+    renderCollectionTabs();
 
     applyFilter('all');
     setupFilterTabs();
@@ -460,16 +634,17 @@
         const albumName = filter.slice(6);
         filteredPhotos = visible.filter(p => (photoAlbums[p.id] || []).includes(albumName));
       } else {
+        // Legacy folder filter (keep for backward compat)
         filteredPhotos = visible.filter(p => p.folder === filter);
       }
     }
 
-    // Update folder/fav tabs
+    // Update All Photos / Favorites / Others tabs
     $$('.filter-tab').forEach(tab => {
       tab.classList.toggle('active', tab.dataset.filter === filter);
     });
-    // Update album tabs
-    renderAlbumFilterTabs();
+    // Update collection tabs
+    renderCollectionTabs();
 
     // Reset gallery
     gallery.innerHTML = '';
@@ -494,10 +669,12 @@
 
   function setupFilterTabs() {
     $$('.filter-tab').forEach(tab => {
-      tab.addEventListener('click', () => applyFilter(tab.dataset.filter));
+      if (tab.dataset.filter && !tab.dataset.filter.startsWith('album:') && tab.id !== 'btn-publish') {
+        tab.addEventListener('click', () => applyFilter(tab.dataset.filter));
+      }
     });
     // Others tab handler
-    othersTab.addEventListener('click', () => applyFilter('others'));
+    if (othersTab) othersTab.addEventListener('click', () => applyFilter('others'));
   }
 
   // =========================================================

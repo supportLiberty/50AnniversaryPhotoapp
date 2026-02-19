@@ -23,20 +23,11 @@
     </div>
   </div>
 
-  <!-- Header -->
-  <header class="header">
-    <div class="header-ornament">&#10045;</div>
-    <h1 class="header-title">50<sup>th</sup> Anniversary</h1>
-    <p class="header-subtitle">Celebrating 50 Golden Years Together</p>
-    <div class="header-ornament">&#10045;</div>
-  </header>
-
-  <!-- Category Bar -->
+  <!-- Category Bar (above header) -->
   <div class="category-bar">
     <div class="category-bar-inner">
-      <!-- Folders -->
+      <!-- All Photos -->
       <div class="category-group">
-        <div class="category-group-label">Folders</div>
         <div class="category-group-items">
           <button class="filter-tab active" data-filter="all">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -46,28 +37,21 @@
             All Photos
             <span class="filter-count" id="count-all"></span>
           </button>
-          <button class="filter-tab" data-filter="Main">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/>
-            </svg>
-            Main Event
-            <span class="filter-count" id="count-Main"></span>
-          </button>
-          <button class="filter-tab" data-filter="15th Feb">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/>
-            </svg>
-            15th Feb
-            <span class="filter-count" id="count-15th Feb"></span>
-          </button>
         </div>
       </div>
 
       <div class="category-separator"></div>
 
-      <!-- Collections -->
-      <div class="category-group">
+      <!-- Collections (dynamically rendered) -->
+      <div class="category-group" id="collections-section">
         <div class="category-group-label">Collections</div>
+        <div class="category-group-items" id="collection-tabs"></div>
+      </div>
+
+      <div class="category-separator"></div>
+
+      <!-- Personal -->
+      <div class="category-group">
         <div class="category-group-items">
           <button class="filter-tab" data-filter="favorites">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="none">
@@ -86,15 +70,30 @@
         </div>
       </div>
 
-      <div class="category-separator" id="album-divider" style="display:none"></div>
-
-      <!-- Albums -->
-      <div class="category-group" id="albums-section">
-        <div class="category-group-label">Albums</div>
-        <div class="category-group-items" id="album-filter-tabs"></div>
+      <!-- Admin: Publish Data -->
+      <div class="category-separator admin-only-el" style="display:none"></div>
+      <div class="category-group admin-only-el" style="display:none">
+        <div class="category-group-items">
+          <button class="filter-tab publish-btn" id="btn-publish" title="Publish album data so all guests can see your collections">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/>
+              <polyline points="16 6 12 2 8 6"/>
+              <line x1="12" y1="2" x2="12" y2="15"/>
+            </svg>
+            Publish Data
+          </button>
+        </div>
       </div>
     </div>
   </div>
+
+  <!-- Header -->
+  <header class="header">
+    <div class="header-ornament">&#10045;</div>
+    <h1 class="header-title">50<sup>th</sup> Anniversary</h1>
+    <p class="header-subtitle">Celebrating 50 Golden Years Together</p>
+    <div class="header-ornament">&#10045;</div>
+  </header>
 
   <!-- Top Bar -->
   <div class="top-bar">
@@ -230,6 +229,7 @@
   </div>
 
   <script src="config.js"></script>
+  <script src="saved-data.js"></script>
   <script src="photos.js"></script>
   <script src="script.js"></script>
 </body>

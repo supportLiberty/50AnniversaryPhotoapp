@@ -18,16 +18,16 @@ const CONFIG = {
   // Admin PIN for delete mode (only you know this)
   ADMIN_PIN: '1234',
 
-  // Default albums (users can add more from the UI)
-  // Each album has: name, color (for the chip/dot), shortcut key (1-9)
+  // Default albums (collections shown in navigation)
+  // adminOnly: true = hidden from guests, only visible in admin mode
   DEFAULT_ALBUMS: [
-    { name: 'Decor',         color: '#E67E22' },
     { name: 'Couple Entry',  color: '#E91E63' },
     { name: 'Photobooth',    color: '#9C27B0' },
     { name: 'Family',        color: '#2196F3' },
-    { name: 'Performances',   color: '#4CAF50' },
+    { name: 'Performances',  color: '#4CAF50' },
     { name: 'DJ & Candid',   color: '#FF9800' },
     { name: 'Group Photos',  color: '#00BCD4' },
     { name: 'Food & Cake',   color: '#795548' },
+    { name: 'Decor',         color: '#E67E22', adminOnly: true },
   ],
 };
