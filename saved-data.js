@@ -1,6 +1,6 @@
-// Published album data - generated 19/2/2026, 2:32:02 pm
+// Published album data - generated 19/2/2026, 2:45:27 pm
 // Total tagged photos: 386
-// Hidden photos: 75
+// Hidden photos: 82
 
 const SAVED_DATA = {
   "photoAlbums": {
@@ -1248,7 +1248,14 @@ const SAVED_DATA = {
     "1KV2CD8Tww7V2onKm4LaBy4wH38IJlxmH",
     "1KcOeDPMM0jECuRDdNgBW4K5HQQuEKhXb",
     "1-_QeSvSKCXhX6Yj4IHlIcWnVT53f50L6",
-    "1cWK270iAxVRubgt5DicRcgu2HTFLq6Mp"
+    "1cWK270iAxVRubgt5DicRcgu2HTFLq6Mp",
+    "1GXE-tSbtRNJxdUHx_cax6ZW2tu7rQ7b1",
+    "1kJPu-03PFj9kqY6rQOtbRb1iO8QmFNA9",
+    "1idigjwsp7hzHFvz-lLMOC3pBknM6mPFL",
+    "1xkb_aXl3b5ZPxzHAFuYsH_o8PtVdoiDr",
+    "1ga__Im-rq0iSySIn49gSUJaxAnmmq4v-",
+    "1OUo-VO6SFcH5G_vBoO3mZnGTzXQy2MGV",
+    "1EfObJ5m2hkfnDw1XJG4CJw0GssdBFrMX"
   ],
   "albumVisibility": {
     "Couple Entry": true,
