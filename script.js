@@ -52,7 +52,6 @@
   const collectionTabsContainer = $('#collection-tabs');
   const btnAdmin = $('#btn-admin');
   const lightboxDelete = $('#lightbox-delete');
-  const othersTab = $('#others-tab');
   const btnPublish = $('#btn-publish');
   const slideshow = $('#slideshow');
   const slideshowImg = $('#slideshow-img');
@@ -212,7 +211,6 @@
         adminMode = true;
         document.body.classList.add('admin-mode');
         btnAdmin.classList.add('active');
-        othersTab.style.display = '';
         // Show admin-only elements
         $$('.admin-only-el').forEach(el => el.style.display = '');
         updateOthersCount();
@@ -239,7 +237,6 @@
     adminMode = false;
     document.body.classList.remove('admin-mode');
     btnAdmin.classList.remove('active');
-    othersTab.style.display = 'none';
     $$('.admin-only-el').forEach(el => el.style.display = 'none');
     renderCollectionTabs();
     if (activeFilter === 'others') applyFilter('all');
@@ -277,8 +274,7 @@
   }
 
   function updateFavCount() {
-    const el = document.getElementById('count-favorites');
-    if (el) el.textContent = favorites.size;
+    renderCollectionTabs();
   }
 
   // =========================================================
@@ -391,6 +387,23 @@
 
       collectionTabsContainer.appendChild(btn);
     });
+
+    // Favorites tab at the end of collections
+    const favCount = favorites.size;
+    if (favCount > 0 || adminMode) {
+      const favBtn = document.createElement('button');
+      const isFavActive = activeFilter === 'favorites';
+      const favColor = '#F59E0B';
+      favBtn.className = 'album-filter-tab' + (isFavActive ? ' active' : '');
+      favBtn.dataset.filter = 'favorites';
+      if (isFavActive) {
+        favBtn.style.background = favColor;
+        favBtn.style.borderColor = favColor;
+      }
+      favBtn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="${favColor}" stroke="none"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>Favorites <span class="filter-count">${favCount}</span>`;
+      favBtn.addEventListener('click', () => applyFilter('favorites'));
+      collectionTabsContainer.appendChild(favBtn);
+    }
   }
 
   // =========================================================
@@ -673,8 +686,6 @@
         tab.addEventListener('click', () => applyFilter(tab.dataset.filter));
       }
     });
-    // Others tab handler
-    if (othersTab) othersTab.addEventListener('click', () => applyFilter('others'));
   }
 
   // =========================================================

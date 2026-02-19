@@ -48,19 +48,11 @@
         <div class="category-group-items" id="collection-tabs"></div>
       </div>
 
-      <div class="category-separator"></div>
-
-      <!-- Personal -->
-      <div class="category-group">
+      <!-- Others (admin only) -->
+      <div class="category-separator admin-only-el" style="display:none"></div>
+      <div class="category-group admin-only-el" style="display:none">
         <div class="category-group-items">
-          <button class="filter-tab" data-filter="favorites">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="none">
-              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-            </svg>
-            Favorites
-            <span class="filter-count" id="count-favorites">0</span>
-          </button>
-          <button class="filter-tab filter-tab-others" data-filter="others" id="others-tab" style="display:none">
+          <button class="filter-tab filter-tab-others" data-filter="others" id="others-tab">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/>
             </svg>
