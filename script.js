@@ -618,7 +618,7 @@
     updateFavCount();
     renderCollectionTabs();
 
-    applyFilter('all');
+    applyFilter('album:Couple Entry');
     setupFilterTabs();
     setupSizeToggle();
     setupJumpSlider();
